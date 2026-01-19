@@ -1,0 +1,129 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: ecocampus-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: ecocampus
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ecocampus-network
+
+  # Redis for caching and real-time
+  redis:
+    image: redis:7-alpine
+    container_name: ecocampus-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ecocampus-network
+
+  # MQTT Broker for IoT
+  mqtt:
+    image: eclipse-mosquitto:2.0
+    container_name: ecocampus-mqtt
+    ports:
+      - "1883:1883"  # MQTT
+      - "9001:9001"  # WebSocket
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - mqtt_data:/mosquitto/data
+      - mqtt_log:/mosquitto/log
+    networks:
+      - ecocampus-network
+
+  # Backend API
+  backend:
+    build: .
+    container_name: ecocampus-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mqtt:
+        condition: service_started
+    environment:
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/ecocampus
+      REDIS_URL: redis://redis:6379/0
+      MQTT_BROKER: mqtt
+      MQTT_PORT: 1883
+      DEBUG: "True"
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    command: >
+      sh -c "sleep 5 &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    networks:
+      - ecocampus-network
+
+  # Frontend (to be added later)
+  # frontend:
+  #   build: ./frontend
+  #   container_name: ecocampus-frontend
+  #   ports:
+  #     - "3000:3000"
+  #   depends_on:
+  #     - backend
+  #   networks:
+  #     - ecocampus-network
+
+  # PgAdmin for database management (optional)
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: ecocampus-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@ecocampus.edu
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - ecocampus-network
+
+  # Redis Commander for Redis management (optional)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: ecocampus-redis-commander
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    networks:
+      - ecocampus-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  mqtt_data:
+  mqtt_log:
+
+networks:
+  ecocampus-network:
+    driver: bridge
