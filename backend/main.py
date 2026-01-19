@@ -8,6 +8,10 @@ from backend.core.config import settings
 from backend.core.database import create_tables, get_db
 from backend.api.v1.api import api_router
 from backend.services.iot_service import start_iot_service
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Configure logging
 logging.basicConfig(
@@ -35,9 +39,11 @@ app = FastAPI(
 )
 
 # Configure CORS
+origins = os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
