@@ -9,6 +9,7 @@ from backend.core.database import create_tables, get_db
 from backend.api.v1.api import api_router
 from backend.services.iot_service import start_iot_service
 import os
+import random
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -104,6 +105,42 @@ async def startup_event():
     create_tables()
     logger.info("Database tables created/verified")
     
+    # Auto-seed database for demo mode if needed
+    try:
+        from backend.core.database import SessionLocal
+        from backend.models.user import User
+        from backend.models.campus import Campus
+        from backend.core.security import get_password_hash
+        
+        db = SessionLocal()
+        try:
+            # Seed demo admin user admin@ecocampus.com / password123
+            admin_user = db.query(User).filter(User.email == 'admin@ecocampus.com').first()
+            if not admin_user:
+                admin_user = User(
+                    email='admin@ecocampus.com',
+                    username='admin',
+                    full_name='Demo Admin User',
+                    hashed_password=get_password_hash('password123'),
+                    role='superuser',
+                    is_active=True,
+                    is_superuser=True
+                )
+                db.add(admin_user)
+                db.commit()
+                logger.info("Demo admin user (admin@ecocampus.com) seeded")
+            
+            # Seed demo campus data if empty
+            has_campus = db.query(Campus).first()
+            if not has_campus:
+                logger.info("Seeding demo campus & emissions data...")
+                setup_demo_data_sync(db)
+                logger.info("Demo campus data seeded successfully")
+        finally:
+            db.close()
+    except Exception as seed_err:
+        logger.warning(f"Auto-seeding demo data failed/skipped: {seed_err}")
+    
     # Start IoT service
     try:
         start_iot_service()
@@ -174,18 +211,20 @@ async def root():
     }
 
 
-# Demo data endpoint
-@app.post("/demo/setup")
-async def setup_demo_data(db: Session = Depends(get_db)):
+def setup_demo_data_sync(db: Session):
     """
-    Set up demo data for testing
+    Synchronous helper to populate demo data
     """
     from backend.services.data_service import DataService
-    from backend.models.campus import Campus, Building, Department
+    from backend.models.campus import Campus, Building, Department, IoTDevice
+    from backend.core.security import get_password_hash
+    from backend.models.user import User
     
     # Check if demo campus already exists
-    existing = db.query(Campus).filter(Campus.name == "LNMIIT Demo Campus").first()
-    
+    existing = db.query(Campus).filter(Campus.name == "EcoCampus Demo").first()
+    if not existing:
+        existing = db.query(Campus).first()
+        
     if existing:
         return {
             "message": "Demo campus already exists",
@@ -194,8 +233,8 @@ async def setup_demo_data(db: Session = Depends(get_db)):
     
     # Create demo campus
     campus = Campus(
-        name="LNMIIT Demo Campus",
-        location="Jaipur, Rajasthan",
+        name="EcoCampus Demo",
+        location="Green Park, Smart City",
         area_sqm=100000,
         student_count=5000,
         staff_count=500,
@@ -254,6 +293,27 @@ async def setup_demo_data(db: Session = Depends(get_db)):
         db.add(department)
     
     db.commit()
+
+    # Create demo IoT devices
+    iot_devices_data = [
+        {"device_id": "SMART_METER_01", "name": "Academic Block Energy Meter", "type": "energy_meter", "unit": "kWh"},
+        {"device_id": "WATER_SENSOR_01", "name": "Hostel Water Flow Sensor", "type": "water_meter", "unit": "liters"},
+        {"device_id": "AQI_MONITOR_01", "name": "Library Air Quality Sensor", "type": "air_quality", "unit": "AQI"},
+        {"device_id": "WASTE_SENSOR_01", "name": "Cafeteria Waste Bin Sensor", "type": "waste_bin", "unit": "kg"},
+    ]
+    for iot_data in iot_devices_data:
+        device = IoTDevice(
+            campus_id=campus.id,
+            building_id=random.choice([b.id for b in buildings]),
+            device_id=iot_data["device_id"],
+            device_name=iot_data["name"],
+            device_type=iot_data["type"],
+            location="Building Ground Floor",
+            unit=iot_data["unit"],
+            status="active"
+        )
+        db.add(device)
+    db.commit()
     
     # Generate mock emissions data
     emissions = DataService.generate_mock_emissions(db, campus.id, days=30)
@@ -263,21 +323,33 @@ async def setup_demo_data(db: Session = Depends(get_db)):
     db.commit()
     
     # Create admin user if not exists
-    from backend.core.security import get_password_hash
-    from backend.models.user import User
-    
-    admin = db.query(User).filter(User.username == "admin").first()
-    if not admin:
-        admin = User(
+    admin1 = db.query(User).filter(User.email == "admin@ecocampus.com").first()
+    if not admin1:
+        admin1 = User(
+            email="admin@ecocampus.com",
+            username="admin",
+            full_name="System Administrator",
+            hashed_password=get_password_hash("password123"),
+            role="superuser",
+            is_active=True,
+            is_superuser=True
+        )
+        db.add(admin1)
+
+    admin2 = db.query(User).filter(User.username == "admin").first()
+    if not admin2:
+        admin2 = User(
             email="admin@ecocampus.edu",
             username="admin",
             full_name="System Administrator",
             hashed_password=get_password_hash("admin123"),
+            role="superuser",
             is_active=True,
             is_superuser=True
         )
-        db.add(admin)
-        db.commit()
+        db.add(admin2)
+
+    db.commit()
     
     return {
         "message": "Demo data created successfully",
@@ -287,7 +359,15 @@ async def setup_demo_data(db: Session = Depends(get_db)):
         "departments_created": len(departments_data),
         "emissions_data": f"{len(emissions)} days",
         "admin_credentials": {
-            "username": "admin",
-            "password": "admin123"
+            "email": "admin@ecocampus.com",
+            "password": "password123"
         }
     }
+
+# Demo data endpoint
+@app.post("/demo/setup")
+async def setup_demo_data(db: Session = Depends(get_db)):
+    """
+    Set up demo data for testing
+    """
+    return setup_demo_data_sync(db)

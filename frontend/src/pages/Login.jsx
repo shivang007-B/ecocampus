@@ -85,12 +85,23 @@ export default function Login() {
           </button>
         </form>
 
-        <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-          <p className="text-sm text-gray-600">
-            <strong>Demo Credentials:</strong><br />
-            Email: admin@ecocampus.com<br />
-            Password: password123
-          </p>
+        <div className="mt-6 p-4 bg-emerald-50 rounded-lg border border-emerald-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold text-emerald-800 uppercase tracking-wider mb-1">Demo Credentials</p>
+              <p className="text-sm text-gray-700">admin@ecocampus.com / password123</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setEmail('admin@ecocampus.com')
+                setPassword('password123')
+              }}
+              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded shadow-sm transition"
+            >
+              Fill Demo Login
+            </button>
+          </div>
         </div>
       </div>
     </div>
