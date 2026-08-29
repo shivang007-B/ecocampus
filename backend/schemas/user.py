@@ -42,6 +42,12 @@ class UserResponse(UserInDB):
     pass
 
 
+class LoginRequest(BaseModel):
+    email: Optional[str] = None
+    username: Optional[str] = None
+    password: str
+
+
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"

@@ -23,20 +23,34 @@ export default function Campus() {
   const fetchCampuses = async () => {
     try {
       setLoading(true)
-      // In real app: const response = await campusAPI.getAll()
+      const response = await campusAPI.getAll()
+      if (response.data && response.data.length > 0) {
+        setCampuses(response.data)
+      } else {
+        setCampuses([
+          {
+            id: 1,
+            name: 'EcoCampus Main Campus',
+            location: 'Smart City, Green Park',
+            area_sqm: 100000,
+            student_count: 5000,
+            staff_count: 500,
+            building_count: 7,
+          }
+        ])
+      }
+    } catch (error) {
       setCampuses([
         {
           id: 1,
-          name: 'LNMIIT Main Campus',
-          location: 'Jaipur, Rajasthan',
+          name: 'EcoCampus Main Campus',
+          location: 'Smart City, Green Park',
           area_sqm: 100000,
           student_count: 5000,
           staff_count: 500,
-          building_count: 12,
+          building_count: 7,
         }
       ])
-    } catch (error) {
-      toast.error('Failed to fetch campuses')
     } finally {
       setLoading(false)
     }

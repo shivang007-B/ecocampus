@@ -165,6 +165,8 @@ async def shutdown_event():
     logger.info("IoT service stopped")
 
 
+from sqlalchemy import text
+
 # Health check endpoint
 @app.get("/health")
 async def health_check(db: Session = Depends(get_db)):
@@ -173,7 +175,7 @@ async def health_check(db: Session = Depends(get_db)):
     """
     try:
         # Test database connection
-        db.execute("SELECT 1")
+        db.execute(text("SELECT 1"))
         
         return {
             "status": "healthy",
@@ -298,19 +300,18 @@ def setup_demo_data_sync(db: Session):
     iot_devices_data = [
         {"device_id": "SMART_METER_01", "name": "Academic Block Energy Meter", "type": "energy_meter", "unit": "kWh"},
         {"device_id": "WATER_SENSOR_01", "name": "Hostel Water Flow Sensor", "type": "water_meter", "unit": "liters"},
-        {"device_id": "AQI_MONITOR_01", "name": "Library Air Quality Sensor", "type": "air_quality", "unit": "AQI"},
-        {"device_id": "WASTE_SENSOR_01", "name": "Cafeteria Waste Bin Sensor", "type": "waste_bin", "unit": "kg"},
+        {"device_id": "AQI_MONITOR_01", "name": "Library Air Quality Sensor", "type": "temperature_sensor", "unit": "AQI"},
+        {"device_id": "WASTE_SENSOR_01", "name": "Cafeteria Waste Bin Sensor", "type": "waste_sensor", "unit": "kg"},
     ]
     for iot_data in iot_devices_data:
         device = IoTDevice(
-            campus_id=campus.id,
             building_id=random.choice([b.id for b in buildings]),
             device_id=iot_data["device_id"],
-            device_name=iot_data["name"],
             device_type=iot_data["type"],
-            location="Building Ground Floor",
-            unit=iot_data["unit"],
-            status="active"
+            manufacturer="EcoTech Inc.",
+            model="v1.0-Demo",
+            is_active=True,
+            device_metadata={"name": iot_data["name"], "unit": iot_data["unit"]}
         )
         db.add(device)
     db.commit()
