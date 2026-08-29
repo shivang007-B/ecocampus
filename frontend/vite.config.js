@@ -14,6 +14,6 @@ export default defineConfig({
     }
   },
   optimizeDeps: {
-    exclude: ['react-smooth']
+    include: ['react-smooth', 'recharts']
   }
 })

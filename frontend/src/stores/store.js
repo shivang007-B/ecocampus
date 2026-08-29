@@ -1,8 +1,17 @@
 import { create } from 'zustand';
 import { authAPI } from '../api/client';
 
+const getStoredUser = () => {
+  try {
+    const item = localStorage.getItem('user');
+    return item && item !== 'undefined' ? JSON.parse(item) : null;
+  } catch (e) {
+    return null;
+  }
+};
+
 export const useAuthStore = create((set) => ({
-  user: JSON.parse(localStorage.getItem('user')) || null,
+  user: getStoredUser(),
   token: localStorage.getItem('token') || null,
   isLoading: false,
   error: null,
@@ -27,7 +36,11 @@ export const useAuthStore = create((set) => ({
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     set({ user: null, token: null });
-    authAPI.logout();
+    try {
+      authAPI.logout();
+    } catch (e) {
+      // Ignore API logout error
+    }
   },
 
   setUser: (user) => set({ user }),
