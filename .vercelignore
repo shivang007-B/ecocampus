@@ -1,6 +1,6 @@
 .env
-frontend/.env
-frontend/.env.local
-ecocampus.db
+*.env
+*.db
 __pycache__/
-frontend/node_modules/
+.vscode/
+.idea/
