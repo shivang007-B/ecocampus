@@ -40,6 +40,26 @@ export default function Login() {
     }
   }
 
+  const handleQuickDemoLogin = async () => {
+    setIsLoading(true)
+    try {
+      await login('admin@ecocampus.com', 'password123')
+      toast.success('Access Granted - Cyber Telemetry Active', {
+        style: {
+          background: '#0e161a',
+          color: '#10F0A0',
+          border: '1px solid rgba(16,240,160,0.4)',
+          fontFamily: 'Fira Code'
+        }
+      })
+      navigate('/')
+    } catch (error) {
+      toast.error('Demo authentication error')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[#080c0e] flex items-center justify-center p-4 relative overflow-hidden">
       {/* Background Cyber Glow Effects */}
@@ -107,7 +127,7 @@ export default function Login() {
 
         {/* Demo Credentials Box */}
         <div className="mt-6 p-4 rounded-xl bg-emerald-950/40 border border-emerald-500/30">
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-[10px] font-mono font-semibold text-[#10F0A0] uppercase tracking-widest mb-1 flex items-center gap-1">
                 <ShieldCheck className="w-3.5 h-3.5 inline" /> Demo Credentials
@@ -115,16 +135,26 @@ export default function Login() {
               <p className="text-xs font-mono text-gray-300">admin@ecocampus.com</p>
               <p className="text-[11px] font-mono text-gray-400">password: password123</p>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                setEmail('admin@ecocampus.com')
-                setPassword('password123')
-              }}
-              className="px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/40 border border-emerald-500/50 text-[#10F0A0] text-xs font-mono font-semibold rounded-lg shadow-sm transition"
-            >
-              Fill Demo
-            </button>
+            <div className="flex flex-col gap-1.5">
+              <button
+                type="button"
+                onClick={handleQuickDemoLogin}
+                disabled={isLoading}
+                className="px-3 py-1.5 bg-[#10F0A0] hover:bg-[#10F0A0]/90 text-[#080c0e] text-xs font-mono font-bold rounded-lg shadow-[0_0_15px_rgba(16,240,160,0.4)] transition cursor-pointer"
+              >
+                1-Click Demo
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail('admin@ecocampus.com')
+                  setPassword('password123')
+                }}
+                className="px-3 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/40 text-[#10F0A0] text-[11px] font-mono rounded-lg transition cursor-pointer"
+              >
+                Fill Form
+              </button>
+            </div>
           </div>
         </div>
       </div>
