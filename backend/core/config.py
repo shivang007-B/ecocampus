@@ -1,6 +1,16 @@
 from pydantic_settings import BaseSettings
 from typing import List, Optional
 import os
+import tempfile
+from pathlib import Path
+
+
+def default_database_url() -> str:
+    """Use Vercel's writable temporary directory for the self-contained demo."""
+    if os.getenv("VERCEL"):
+        db_file = Path(tempfile.gettempdir()) / "ecocampus-demo.db"
+        return f"sqlite:///{db_file.as_posix()}"
+    return "sqlite:///./ecocampus.db"
 
 
 class Settings(BaseSettings):
@@ -10,7 +20,7 @@ class Settings(BaseSettings):
     VERSION: str = "1.0.0"
     
     # Database - SQLite for local development
-    DATABASE_URL: str = "sqlite:///./ecocampus.db"
+    DATABASE_URL: str = default_database_url()
     DATABASE_URL_TEST: str = "sqlite:///./ecocampus_test.db"
     
     # JWT
@@ -45,3 +55,8 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+# Values in a checked-in local .env must never make a Vercel function attempt
+# to write beside the deployed source bundle.
+if os.getenv("VERCEL"):
+    settings.DATABASE_URL = default_database_url()

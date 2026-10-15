@@ -1,4 +1,4 @@
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, Field, validator
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
@@ -99,6 +99,9 @@ class IoTDeviceResponse(IoTDeviceBase):
     installation_date: Optional[datetime] = None
     last_maintenance: Optional[datetime] = None
     is_active: bool
+    # SQLAlchemy reserves ``metadata`` on models, so the database column is
+    # named device_metadata while the public API keeps the friendlier name.
+    metadata: Optional[Dict[str, Any]] = Field(default=None, validation_alias="device_metadata")
     
     class Config:
         from_attributes = True

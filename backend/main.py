@@ -141,12 +141,14 @@ async def startup_event():
     except Exception as seed_err:
         logger.warning(f"Auto-seeding demo data failed/skipped: {seed_err}")
     
-    # Start IoT service
-    try:
-        start_iot_service()
-        logger.info("IoT service started")
-    except Exception as e:
-        logger.warning(f"Failed to start IoT service: {e}")
+    # Serverless functions cannot maintain an MQTT connection.  The dashboard
+    # still exposes seeded device telemetry in demo mode.
+    if not os.getenv("VERCEL"):
+        try:
+            start_iot_service()
+            logger.info("IoT service started")
+        except Exception as e:
+            logger.warning(f"Failed to start IoT service: {e}")
     
     logger.info(f"EcoCampus API started successfully - {settings.APP_NAME} v{settings.VERSION}")
 
@@ -159,10 +161,10 @@ async def shutdown_event():
     """
     logger.info("Shutting down EcoCampus API...")
     
-    # Stop IoT service
-    from backend.services.iot_service import stop_iot_service
-    stop_iot_service()
-    logger.info("IoT service stopped")
+    if not os.getenv("VERCEL"):
+        from backend.services.iot_service import stop_iot_service
+        stop_iot_service()
+        logger.info("IoT service stopped")
 
 
 from sqlalchemy import text

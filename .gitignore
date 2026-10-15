@@ -1,0 +1,6 @@
+__pycache__/
+*.py[cod]
+.env
+.env.local
+ecocampus_test.db
+frontend/node_modules/

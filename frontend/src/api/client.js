@@ -1,7 +1,11 @@
 import axios from 'axios';
 
-// Use relative URL for API calls - Vite will proxy to backend
-const API_BASE_URL = '/api/v1';
+// Same-origin calls work locally through Vite's proxy and after a Vercel deploy.
+// Keeping localhost out of a production bundle avoids requests to a visitor's PC.
+const configuredUrl = import.meta.env.VITE_API_URL?.replace(/\/$/, '');
+const API_BASE_URL = configuredUrl && !configuredUrl.includes('localhost')
+  ? configuredUrl
+  : '/api/v1';
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -22,7 +26,7 @@ apiClient.interceptors.request.use((config) => {
 // Auth endpoints
 export const authAPI = {
   login: (email, password) => apiClient.post('/auth/login', { email, password }),
-  signup: (data) => apiClient.post('/auth/signup', data),
+  signup: (data) => apiClient.post('/auth/register', data),
   logout: () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -45,6 +49,8 @@ export const campusAPI = {
   create: (data) => apiClient.post('/campuses', data),
   update: (id, data) => apiClient.put(`/campuses/${id}`, data),
   delete: (id) => apiClient.delete(`/campuses/${id}`),
+  getDashboard: (id) => apiClient.get(`/campuses/${id}/dashboard`),
+  getBuildings: (id) => apiClient.get(`/campuses/${id}/buildings`),
 };
 
 // Carbon endpoints
@@ -53,7 +59,7 @@ export const carbonAPI = {
   getEmissionById: (id) => apiClient.get(`/carbon/emissions/${id}`),
   createEmission: (data) => apiClient.post('/carbon/emissions', data),
   calculate: (data) => apiClient.post('/carbon/calculate', data),
-  getTrends: () => apiClient.get('/carbon/trends'),
+  getTrends: (campusId = 1) => apiClient.get(`/campuses/${campusId}/trends`),
   getGoals: () => apiClient.get('/carbon/goals'),
   getReport: () => apiClient.get('/carbon/report'),
 };

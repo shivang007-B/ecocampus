@@ -1,65 +1,73 @@
 import React, { useState, useEffect } from 'react'
 import { TrendingDown, Target, Zap, Droplets, Trash2, Cpu, Activity, ArrowDownRight, RefreshCw } from 'lucide-react'
 import { EmissionChart, TrendChart, BreakdownChart } from '../components/Charts'
-import { carbonAPI, iotAPI } from '../api/client'
+import { campusAPI, iotAPI } from '../api/client'
 import toast from 'react-hot-toast'
 import EcoCard from '../components/EcoCard'
 import EcoButton from '../components/EcoButton'
+import {
+  DEMO_STATS,
+  DEMO_CHART_DATA,
+  DEMO_TREND_DATA,
+  DEMO_IOT_DEVICES,
+} from '../data/demoData'
 
 export default function Dashboard() {
   const [loading, setLoading] = useState(true)
-  const [stats, setStats] = useState({
-    totalEmissions: 14100,
-    monthlyTarget: 18000,
-    electricityEmissions: 5234,
-    transportationEmissions: 4890,
-    wasteEmissions: 2326,
-    waterEmissions: 450,
-    foodEmissions: 1200,
-  })
-  const [chartData, setChartData] = useState([])
-  const [trendData, setTrendData] = useState([])
-  const [iotStatus, setIotStatus] = useState([])
+  const [stats, setStats] = useState(DEMO_STATS)
+  const [chartData, setChartData] = useState(DEMO_CHART_DATA)
+  const [trendData, setTrendData] = useState(DEMO_TREND_DATA)
+  const [iotStatus, setIotStatus] = useState(DEMO_IOT_DEVICES)
 
   useEffect(() => {
     fetchDashboardData()
   }, [])
 
   const fetchDashboardData = async () => {
+    setLoading(true)
     try {
-      setLoading(true)
-      
-      const [emissionsRes, trendsRes, iotRes] = await Promise.allSettled([
-        carbonAPI.getEmissions(),
-        carbonAPI.getTrends(),
-        iotAPI.getDevices()
+      const [dashboardRes, iotRes] = await Promise.all([
+        campusAPI.getDashboard(1),
+        iotAPI.getDevices(),
       ])
 
-      // Populate Chart Data
-      setChartData([
-        { name: 'Electricity', value: 5234 },
-        { name: 'Transport', value: 4890 },
-        { name: 'Waste', value: 2326 },
-        { name: 'Food', value: 1200 },
-        { name: 'Water', value: 450 },
-      ])
+      const { summary, trends, breakdown } = dashboardRes.data
 
-      setTrendData([
-        { date: 'Aug 01', emissions: 15400 },
-        { date: 'Aug 08', emissions: 14900 },
-        { date: 'Aug 15', emissions: 14600 },
-        { date: 'Aug 22', emissions: 14350 },
-        { date: 'Aug 29', emissions: 14100 },
-      ])
+      // Only replace demo data if API returns meaningful values
+      if (summary.month_emission > 0) {
+        const target = Math.max(summary.month_emission * 1.2, 1)
+        setStats({
+          totalEmissions: Math.round(summary.month_emission),
+          monthlyTarget: Math.round(target),
+          electricityEmissions: Math.round(breakdown.electricity || 0),
+          transportationEmissions: Math.round(breakdown.transport || 0),
+          wasteEmissions: Math.round(breakdown.waste || 0),
+          waterEmissions: Math.round(breakdown.water || 0),
+          foodEmissions: Math.round(breakdown.food || 0),
+        })
+        setChartData([
+          { name: 'Electricity', value: Math.round(breakdown.electricity || 0) },
+          { name: 'Transport',   value: Math.round(breakdown.transport || 0) },
+          { name: 'Waste',       value: Math.round(breakdown.waste || 0) },
+          { name: 'Food',        value: Math.round(breakdown.food || 0) },
+          { name: 'Water',       value: Math.round(breakdown.water || 0) },
+        ])
+      }
 
-      setIotStatus([
-        { id: 'SMART_METER_01', name: 'Main Academic Energy Meter', type: 'energy_meter', value: '412 kWh', status: 'active', glow: 'text-emerald-400' },
-        { id: 'WATER_SENSOR_01', name: 'Hostel A Water Flow Telemetry', type: 'water_meter', value: '1,240 L', status: 'active', glow: 'text-cyan-400' },
-        { id: 'AQI_MONITOR_01', name: 'Library Clean Air Monitor', type: 'temperature_sensor', value: '38 AQI', status: 'active', glow: 'text-emerald-400' },
-        { id: 'WASTE_SENSOR_01', name: 'Cafeteria Recycling Sensor', type: 'waste_sensor', value: '185 kg', status: 'active', glow: 'text-amber-400' },
-      ])
-    } catch (error) {
-      toast.error('Failed to update telemetry feeds')
+      if (trends && trends.length > 0) {
+        setTrendData(trends.map((item) => ({ date: item.date, emissions: Math.round(item.total) })))
+      }
+
+      if (iotRes.data && iotRes.data.length > 0) {
+        setIotStatus(iotRes.data.map((device, index) => ({
+          id: device.device_id,
+          name: device.metadata?.name || device.device_type.replace('_', ' '),
+          value: device.metadata?.unit ? `Live ${device.metadata.unit}` : 'Live feed',
+          glow: ['text-emerald-400', 'text-cyan-400', 'text-emerald-400', 'text-amber-400'][index % 4],
+        })))
+      }
+    } catch (_) {
+      // Backend unavailable – demo data already set as default, no error shown
     } finally {
       setLoading(false)
     }
@@ -75,7 +83,6 @@ export default function Dashboard() {
   }
 
   const completionPercent = Math.min(100, (stats.totalEmissions / stats.monthlyTarget) * 100)
-  const remainingBudget = stats.monthlyTarget - stats.totalEmissions
 
   return (
     <div className="space-y-8 animate-fadeIn">
@@ -85,7 +92,7 @@ export default function Dashboard() {
           <h1 className="text-2xl md:text-3xl font-bold text-white flex items-center gap-2">
             Campus GHG Telemetry <span className="text-[#10F0A0] text-sm font-mono font-normal">● LIVE</span>
           </h1>
-          <p className="text-xs font-mono text-gray-400 mt-1">Real-time Scope 1, 2 & 3 emissions analytics for EcoCampus Demo</p>
+          <p className="text-xs font-mono text-gray-400 mt-1">Real-time Scope 1, 2 &amp; 3 emissions analytics for EcoCampus Demo</p>
         </div>
         <div className="flex items-center gap-3">
           <EcoButton variant="outline" onClick={fetchDashboardData} className="text-xs py-2">
@@ -164,7 +171,7 @@ export default function Dashboard() {
           </div>
           <span className="text-xs font-mono text-cyan-400 flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
-            4 Active Sensors
+            {iotStatus.length} Active Sensors
           </span>
         </div>
 

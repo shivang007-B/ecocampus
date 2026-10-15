@@ -53,7 +53,7 @@ def create_iot_device(
         installation_date=datetime.now(),
         last_maintenance=datetime.now(),
         is_active=True,
-        metadata=device_in.metadata
+        device_metadata=device_in.metadata
     )
     
     db.add(device)

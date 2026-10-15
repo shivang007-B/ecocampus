@@ -2,13 +2,14 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from backend.core.config import settings
+import os
 
 # Create database engine
 engine = create_engine(
     settings.DATABASE_URL,
     pool_pre_ping=True,
     pool_recycle=300,
-    echo=settings.DEBUG,
+    echo=settings.DEBUG and not os.getenv("VERCEL"),
     connect_args={"check_same_thread": False} if "sqlite" in settings.DATABASE_URL else {}
 )
 

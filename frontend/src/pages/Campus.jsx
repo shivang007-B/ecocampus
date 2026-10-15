@@ -3,11 +3,13 @@ import { Plus, Building as BuildingIcon, MapPin, Users, Zap, Layers, Calendar, T
 import { campusAPI } from '../api/client'
 import toast from 'react-hot-toast'
 import EcoButton from '../components/EcoButton'
+import { DEMO_CAMPUSES, DEMO_BUILDINGS } from '../data/demoData'
 
 export default function Campus() {
-  const [campuses, setCampuses] = useState([])
+  const [campuses, setCampuses] = useState(DEMO_CAMPUSES)
   const [showForm, setShowForm] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [buildings, setBuildings] = useState([])
   const [formData, setFormData] = useState({
     name: '',
     location: '',
@@ -27,31 +29,14 @@ export default function Campus() {
       const response = await campusAPI.getAll()
       if (response.data && response.data.length > 0) {
         setCampuses(response.data)
-      } else {
-        setCampuses([
-          {
-            id: 1,
-            name: 'EcoCampus Main Campus',
-            location: 'Smart City, Green Park',
-            area_sqm: 100000,
-            student_count: 5000,
-            staff_count: 500,
-            building_count: 7,
-          }
-        ])
-      }
-    } catch (error) {
-      setCampuses([
-        {
-          id: 1,
-          name: 'EcoCampus Main Campus',
-          location: 'Smart City, Green Park',
-          area_sqm: 100000,
-          student_count: 5000,
-          staff_count: 500,
-          building_count: 7,
+        const buildingsResponse = await campusAPI.getBuildings(response.data[0].id)
+        if (buildingsResponse.data && buildingsResponse.data.length > 0) {
+          setBuildings(buildingsResponse.data)
         }
-      ])
+      }
+      // else keep demo data
+    } catch (_) {
+      // Backend unavailable – demo data already shown, no error toast
     } finally {
       setLoading(false)
     }
@@ -60,6 +45,13 @@ export default function Campus() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
+      await campusAPI.create({
+        ...formData,
+        area_sqm: Number(formData.area_sqm || 0),
+        student_count: Number(formData.student_count || 0),
+        staff_count: Number(formData.staff_count || 0),
+        building_count: Number(formData.building_count || 0),
+      })
       toast.success('Campus Facility Node Registered', {
         style: { background: '#0e161a', color: '#10F0A0', border: '1px solid rgba(16,240,160,0.4)', fontFamily: 'Fira Code' }
       })
@@ -71,14 +63,7 @@ export default function Campus() {
     }
   }
 
-  const mockBuildings = [
-    { id: 1, name: 'Main Academic Block', type: 'Academic', area: '20,000 sqm', energy: 'Rating A+', floors: 5 },
-    { id: 2, name: 'Computer Science Dept', type: 'Lab & Research', area: '5,000 sqm', energy: 'Rating A', floors: 4 },
-    { id: 3, name: 'Boys Hostel Complex A', type: 'Residential', area: '15,000 sqm', energy: 'Rating B', floors: 4 },
-    { id: 4, name: 'Girls Hostel Complex B', type: 'Residential', area: '12,000 sqm', energy: 'Rating A', floors: 4 },
-    { id: 5, name: 'Central Digital Library', type: 'Academic', area: '8,000 sqm', energy: 'Rating A+', floors: 3 },
-    { id: 6, name: 'Eco Dining & Cafeteria', type: 'Cafeteria', area: '3,000 sqm', energy: 'Rating B', floors: 2 },
-  ]
+  const mockBuildings = DEMO_BUILDINGS
 
   return (
     <div className="space-y-8 animate-fadeIn">
@@ -191,7 +176,14 @@ export default function Campus() {
           <Layers className="w-5 h-5 text-[#10F0A0]" /> Campus Buildings & Energy Ratings
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {mockBuildings.map((bldg) => (
+          {(buildings.length ? buildings.map((building) => ({
+            id: building.id,
+            name: building.name,
+            type: building.building_type?.replace('_', ' ') || 'Campus facility',
+            area: `${Number(building.area_sqm || 0).toLocaleString()} sqm`,
+            energy: `Rating ${building.energy_rating || 'N/A'}`,
+            floors: building.floor_count || 1,
+          })) : mockBuildings).map((bldg) => (
             <div key={bldg.id} className="cyber-card rounded-2xl p-5 hover:border-emerald-500/40 transition">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-xs font-mono text-cyan-400 bg-cyan-950/60 px-2 py-0.5 rounded border border-cyan-500/30">

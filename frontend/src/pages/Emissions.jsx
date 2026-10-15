@@ -3,9 +3,10 @@ import { Plus, Leaf, Zap, Car, Trash2, Droplets, Utensils, Calendar, Filter, X }
 import { carbonAPI } from '../api/client'
 import toast from 'react-hot-toast'
 import EcoButton from '../components/EcoButton'
+import { DEMO_EMISSIONS_LOG } from '../data/demoData'
 
 export default function Emissions() {
-  const [emissions, setEmissions] = useState([])
+  const [emissions, setEmissions] = useState(DEMO_EMISSIONS_LOG)
   const [showForm, setShowForm] = useState(false)
   const [loading, setLoading] = useState(false)
   const [filterCategory, setFilterCategory] = useState('ALL')
@@ -29,19 +30,10 @@ export default function Emissions() {
       const response = await carbonAPI.getEmissions()
       if (response.data && response.data.length > 0) {
         setEmissions(response.data)
-      } else {
-        setEmissions([
-          { id: 1, campus_id: 1, electricity_emission: 5234, transportation_emission: 4890, waste_emission: 2326, water_emission: 450, food_emission: 1200, total_emission: 14100, date: '2026-08-29T10:00:00Z', notes: 'Automated campus IoT batch' },
-          { id: 2, campus_id: 1, electricity_emission: 5410, transportation_emission: 4720, waste_emission: 2400, water_emission: 430, food_emission: 1150, total_emission: 14110, date: '2026-08-28T10:00:00Z', notes: 'Peak weekday consumption' },
-          { id: 3, campus_id: 1, electricity_emission: 4980, transportation_emission: 4600, waste_emission: 2200, water_emission: 410, food_emission: 1100, total_emission: 13290, date: '2026-08-27T10:00:00Z', notes: 'Green Energy Switch Day' },
-        ])
       }
-    } catch (error) {
-      setEmissions([
-        { id: 1, campus_id: 1, electricity_emission: 5234, transportation_emission: 4890, waste_emission: 2326, water_emission: 450, food_emission: 1200, total_emission: 14100, date: '2026-08-29T10:00:00Z', notes: 'Automated campus IoT batch' },
-        { id: 2, campus_id: 1, electricity_emission: 5410, transportation_emission: 4720, waste_emission: 2400, water_emission: 430, food_emission: 1150, total_emission: 14110, date: '2026-08-28T10:00:00Z', notes: 'Peak weekday consumption' },
-        { id: 3, campus_id: 1, electricity_emission: 4980, transportation_emission: 4600, waste_emission: 2200, water_emission: 410, food_emission: 1100, total_emission: 13290, date: '2026-08-27T10:00:00Z', notes: 'Green Energy Switch Day' },
-      ])
+      // else keep demo data
+    } catch (_) {
+      // Backend unavailable – demo data already shown, no error toast
     } finally {
       setLoading(false)
     }
@@ -50,6 +42,18 @@ export default function Emissions() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
+      await carbonAPI.createEmission({
+        campus_id: Number(formData.campus_id),
+        date: new Date().toISOString(),
+        electricity_emission: Number(formData.electricity_emission || 0),
+        transportation_emission: Number(formData.transportation_emission || 0),
+        waste_emission: Number(formData.waste_emission || 0),
+        water_emission: Number(formData.water_emission || 0),
+        food_emission: Number(formData.food_emission || 0),
+        other_emission: 0,
+        data_source: 'manual',
+        notes: formData.notes || 'Manual demo entry',
+      })
       toast.success('Emission Telemetry Record Added', {
         style: { background: '#0e161a', color: '#10F0A0', border: '1px solid rgba(16,240,160,0.4)', fontFamily: 'Fira Code' }
       })
@@ -60,6 +64,12 @@ export default function Emissions() {
       toast.error('Failed to create emission record')
     }
   }
+
+  const visibleEmissions = emissions.filter((item) => {
+    if (filterCategory === 'ALL') return true
+    const field = filterCategory === 'TRANSPORT' ? 'transportation_emission' : `${filterCategory.toLowerCase()}_emission`
+    return Number(item[field]) > 0
+  })
 
   return (
     <div className="space-y-8 animate-fadeIn">
@@ -193,7 +203,7 @@ export default function Emissions() {
               </tr>
             </thead>
             <tbody className="divide-y divide-emerald-500/10 text-gray-200">
-              {emissions.map((item) => (
+              {visibleEmissions.map((item) => (
                 <tr key={item.id} className="hover:bg-emerald-950/20 transition">
                   <td className="p-4 font-semibold text-white">
                     <div>#{item.id} - {new Date(item.date).toLocaleDateString()}</div>

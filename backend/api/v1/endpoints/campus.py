@@ -65,8 +65,9 @@ def create_campus(
     db.commit()
     db.refresh(campus)
     
-    # Generate mock data for the campus
-    DataService.generate_mock_emissions(db, campus.id, days=30)
+    # Give newly created demo campuses immediate dashboard data.
+    db.add_all(DataService.generate_mock_emissions(db, campus.id, days=30))
+    db.commit()
     
     return campus
 

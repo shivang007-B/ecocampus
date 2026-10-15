@@ -16,7 +16,8 @@ from backend.schemas.user import (
     UserCreate,
     UserResponse,
     Token,
-    TokenData
+    TokenData,
+    UserUpdate
 )
 
 router = APIRouter()
@@ -197,24 +198,23 @@ def update_user_me(
     *,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
-    full_name: str = None,
-    email: str = None
+    user_in: UserUpdate
 ) -> Any:
     """
     Update current user information
     """
-    if email and email != current_user.email:
+    if user_in.email and user_in.email != current_user.email:
         # Check if email is already taken
-        existing_user = db.query(User).filter(User.email == email).first()
+        existing_user = db.query(User).filter(User.email == user_in.email).first()
         if existing_user:
             raise HTTPException(
                 status_code=400,
                 detail="Email already registered"
             )
-        current_user.email = email
+        current_user.email = user_in.email
     
-    if full_name:
-        current_user.full_name = full_name
+    if user_in.full_name:
+        current_user.full_name = user_in.full_name
     
     db.commit()
     db.refresh(current_user)

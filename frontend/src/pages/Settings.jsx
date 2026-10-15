@@ -3,6 +3,7 @@ import { Save, Bell, Lock, User as UserIcon, Cpu, ShieldCheck } from 'lucide-rea
 import { useAuthStore } from '../stores/store'
 import toast from 'react-hot-toast'
 import EcoButton from '../components/EcoButton'
+import { usersAPI } from '../api/client'
 
 export default function Settings() {
   const user = useAuthStore((state) => state.user)
@@ -17,11 +18,17 @@ export default function Settings() {
     confirmPassword: '',
   })
 
-  const handleProfileSubmit = (e) => {
+  const handleProfileSubmit = async (e) => {
     e.preventDefault()
+    try {
+      const response = await usersAPI.updateProfile({ full_name: formData.fullName })
+      useAuthStore.setState({ user: response.data })
     toast.success('System Admin Profile Updated', {
       style: { background: '#0e161a', color: '#10F0A0', border: '1px solid rgba(16,240,160,0.4)', fontFamily: 'Fira Code' }
     })
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Profile update failed')
+    }
   }
 
   const handlePasswordSubmit = (e) => {

@@ -1,0 +1,6 @@
+.env
+frontend/.env
+frontend/.env.local
+ecocampus.db
+__pycache__/
+frontend/node_modules/
