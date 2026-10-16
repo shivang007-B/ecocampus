@@ -27,11 +27,14 @@ export default function Campus() {
     try {
       setLoading(true)
       const response = await campusAPI.getAll()
-      if (response.data && response.data.length > 0) {
+      if (Array.isArray(response.data) && response.data.length > 0) {
         setCampuses(response.data)
-        const buildingsResponse = await campusAPI.getBuildings(response.data[0].id)
-        if (buildingsResponse.data && buildingsResponse.data.length > 0) {
-          setBuildings(buildingsResponse.data)
+        const firstId = response.data[0]?.id
+        if (firstId) {
+          const buildingsResponse = await campusAPI.getBuildings(firstId)
+          if (Array.isArray(buildingsResponse.data) && buildingsResponse.data.length > 0) {
+            setBuildings(buildingsResponse.data)
+          }
         }
       }
       // else keep demo data
@@ -64,6 +67,8 @@ export default function Campus() {
   }
 
   const mockBuildings = DEMO_BUILDINGS
+  const safeCampuses = Array.isArray(campuses) ? campuses : DEMO_CAMPUSES
+  const safeBuildings = Array.isArray(buildings) ? buildings : []
 
   return (
     <div className="space-y-8 animate-fadeIn">
@@ -138,7 +143,7 @@ export default function Campus() {
 
       {/* Campus Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {campuses.map((c) => (
+        {safeCampuses.map((c) => (
           <div key={c.id} className="cyber-card rounded-2xl p-6 relative overflow-hidden">
             <div className="flex items-start justify-between mb-4">
               <div>
@@ -176,7 +181,7 @@ export default function Campus() {
           <Layers className="w-5 h-5 text-[#10F0A0]" /> Campus Buildings & Energy Ratings
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {(buildings.length ? buildings.map((building) => ({
+          {(safeBuildings.length ? safeBuildings.map((building) => ({
             id: building.id,
             name: building.name,
             type: building.building_type?.replace('_', ' ') || 'Campus facility',

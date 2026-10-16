@@ -28,7 +28,7 @@ export default function Emissions() {
     try {
       setLoading(true)
       const response = await carbonAPI.getEmissions()
-      if (response.data && response.data.length > 0) {
+      if (Array.isArray(response.data) && response.data.length > 0) {
         setEmissions(response.data)
       }
       // else keep demo data
@@ -65,7 +65,9 @@ export default function Emissions() {
     }
   }
 
-  const visibleEmissions = emissions.filter((item) => {
+  const safeEmissions = Array.isArray(emissions) ? emissions : DEMO_EMISSIONS_LOG
+  const visibleEmissions = safeEmissions.filter((item) => {
+    if (!item) return false
     if (filterCategory === 'ALL') return true
     const field = filterCategory === 'TRANSPORT' ? 'transportation_emission' : `${filterCategory.toLowerCase()}_emission`
     return Number(item[field]) > 0

@@ -23,6 +23,30 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
+// Intercept SPA HTML fallbacks (e.g. Vercel static rewrites when backend is offline)
+apiClient.interceptors.response.use(
+  (response) => {
+    const contentType = String(response.headers?.['content-type'] || '');
+    const isHtml =
+      contentType.includes('text/html') ||
+      (typeof response.data === 'string' &&
+        (response.data.trim().startsWith('<!') ||
+         response.data.trim().startsWith('<html') ||
+         response.data.includes('<div id="root">')));
+
+    if (isHtml) {
+      const error = new Error('Backend API unavailable (received HTML document from SPA router)');
+      error.response = {
+        status: 404,
+        data: { detail: 'Backend service offline. Activating cyber demo telemetry.' },
+      };
+      return Promise.reject(error);
+    }
+    return response;
+  },
+  (error) => Promise.reject(error)
+);
+
 // Auth endpoints
 export const authAPI = {
   login: (email, password) => apiClient.post('/auth/login', { email, password }),

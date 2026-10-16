@@ -7,7 +7,7 @@ import {
 const CYBER_COLORS = ['#10F0A0', '#00E5FF', '#F59E0B', '#A855F7', '#EC4899', '#3B82F6']
 
 const CustomTooltip = ({ active, payload, label }) => {
-  if (active && payload && payload.length) {
+  if (active && Array.isArray(payload) && payload.length) {
     return (
       <div className="bg-[#0e161a]/95 border border-emerald-500/40 p-3 rounded-xl shadow-2xl backdrop-blur-md font-mono text-xs">
         <p className="text-gray-400 font-semibold mb-1">{label}</p>
@@ -23,10 +23,11 @@ const CustomTooltip = ({ active, payload, label }) => {
   return null
 }
 
-export function EmissionChart({ data }) {
+export function EmissionChart({ data = [] }) {
+  const safeData = Array.isArray(data) ? data : []
   return (
     <ResponsiveContainer width="100%" height={300}>
-      <BarChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+      <BarChart data={safeData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
         <defs>
           <linearGradient id="cyberBarGradient" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#10F0A0" stopOpacity={0.9} />
@@ -43,10 +44,11 @@ export function EmissionChart({ data }) {
   )
 }
 
-export function TrendChart({ data }) {
+export function TrendChart({ data = [] }) {
+  const safeData = Array.isArray(data) ? data : []
   return (
     <ResponsiveContainer width="100%" height={300}>
-      <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+      <AreaChart data={safeData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
         <defs>
           <linearGradient id="cyberTrendGradient" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#10F0A0" stopOpacity={0.4} />
@@ -63,12 +65,13 @@ export function TrendChart({ data }) {
   )
 }
 
-export function BreakdownChart({ data }) {
+export function BreakdownChart({ data = [] }) {
+  const safeData = Array.isArray(data) ? data : []
   return (
     <ResponsiveContainer width="100%" height={300}>
       <PieChart>
         <Pie
-          data={data}
+          data={safeData}
           cx="50%"
           cy="50%"
           innerRadius={60}
@@ -76,7 +79,7 @@ export function BreakdownChart({ data }) {
           paddingAngle={4}
           dataKey="value"
         >
-          {data.map((entry, index) => (
+          {safeData.map((entry, index) => (
             <Cell key={`cell-${index}`} fill={CYBER_COLORS[index % CYBER_COLORS.length]} stroke="rgba(8,12,14,0.8)" strokeWidth={2} />
           ))}
         </Pie>

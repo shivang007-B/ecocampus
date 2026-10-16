@@ -4,7 +4,9 @@ import { authAPI } from '../api/client';
 const getStoredUser = () => {
   try {
     const item = localStorage.getItem('user');
-    return item && item !== 'undefined' ? JSON.parse(item) : null;
+    if (!item || item === 'undefined' || item === 'null') return null;
+    const parsed = JSON.parse(item);
+    return parsed && typeof parsed === 'object' ? parsed : null;
   } catch (e) {
     return null;
   }
@@ -20,6 +22,9 @@ export const useAuthStore = create((set) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await authAPI.login(email, password);
+      if (!response.data || typeof response.data !== 'object' || !response.data.access_token) {
+        throw new Error('Invalid response structure received from authentication endpoint');
+      }
       const { user, access_token } = response.data;
       localStorage.setItem('token', access_token);
       localStorage.setItem('user', JSON.stringify(user));

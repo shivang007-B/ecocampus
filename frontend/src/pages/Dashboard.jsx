@@ -31,37 +31,41 @@ export default function Dashboard() {
         iotAPI.getDevices(),
       ])
 
-      const { summary, trends, breakdown } = dashboardRes.data
+      const dData = dashboardRes?.data
+      if (dData && typeof dData === 'object' && !Array.isArray(dData)) {
+        const { summary, trends, breakdown } = dData
 
-      // Only replace demo data if API returns meaningful values
-      if (summary.month_emission > 0) {
-        const target = Math.max(summary.month_emission * 1.2, 1)
-        setStats({
-          totalEmissions: Math.round(summary.month_emission),
-          monthlyTarget: Math.round(target),
-          electricityEmissions: Math.round(breakdown.electricity || 0),
-          transportationEmissions: Math.round(breakdown.transport || 0),
-          wasteEmissions: Math.round(breakdown.waste || 0),
-          waterEmissions: Math.round(breakdown.water || 0),
-          foodEmissions: Math.round(breakdown.food || 0),
-        })
-        setChartData([
-          { name: 'Electricity', value: Math.round(breakdown.electricity || 0) },
-          { name: 'Transport',   value: Math.round(breakdown.transport || 0) },
-          { name: 'Waste',       value: Math.round(breakdown.waste || 0) },
-          { name: 'Food',        value: Math.round(breakdown.food || 0) },
-          { name: 'Water',       value: Math.round(breakdown.water || 0) },
-        ])
+        // Only replace demo data if API returns meaningful values
+        if (summary && summary.month_emission > 0) {
+          const target = Math.max(summary.month_emission * 1.2, 1)
+          const bd = breakdown || {}
+          setStats({
+            totalEmissions: Math.round(summary.month_emission),
+            monthlyTarget: Math.round(target),
+            electricityEmissions: Math.round(bd.electricity || 0),
+            transportationEmissions: Math.round(bd.transport || 0),
+            wasteEmissions: Math.round(bd.waste || 0),
+            waterEmissions: Math.round(bd.water || 0),
+            foodEmissions: Math.round(bd.food || 0),
+          })
+          setChartData([
+            { name: 'Electricity', value: Math.round(bd.electricity || 0) },
+            { name: 'Transport',   value: Math.round(bd.transport || 0) },
+            { name: 'Waste',       value: Math.round(bd.waste || 0) },
+            { name: 'Food',        value: Math.round(bd.food || 0) },
+            { name: 'Water',       value: Math.round(bd.water || 0) },
+          ])
+        }
+
+        if (Array.isArray(trends) && trends.length > 0) {
+          setTrendData(trends.map((item) => ({ date: item.date, emissions: Math.round(item.total) })))
+        }
       }
 
-      if (trends && trends.length > 0) {
-        setTrendData(trends.map((item) => ({ date: item.date, emissions: Math.round(item.total) })))
-      }
-
-      if (iotRes.data && iotRes.data.length > 0) {
+      if (Array.isArray(iotRes?.data) && iotRes.data.length > 0) {
         setIotStatus(iotRes.data.map((device, index) => ({
           id: device.device_id,
-          name: device.metadata?.name || device.device_type.replace('_', ' '),
+          name: device.metadata?.name || device.device_type?.replace('_', ' ') || 'IoT Sensor',
           value: device.metadata?.unit ? `Live ${device.metadata.unit}` : 'Live feed',
           glow: ['text-emerald-400', 'text-cyan-400', 'text-emerald-400', 'text-amber-400'][index % 4],
         })))
@@ -147,7 +151,7 @@ export default function Dashboard() {
               -5.2% vs last month
             </span>
           </div>
-          <TrendChart data={trendData} />
+          <TrendChart data={Array.isArray(trendData) ? trendData : DEMO_TREND_DATA} />
         </div>
 
         {/* Category Breakdown Pie Chart */}
@@ -158,7 +162,7 @@ export default function Dashboard() {
               <p className="text-xs font-mono text-gray-400">Emissions by source</p>
             </div>
           </div>
-          <BreakdownChart data={chartData} />
+          <BreakdownChart data={Array.isArray(chartData) ? chartData : DEMO_CHART_DATA} />
         </div>
       </div>
 
@@ -171,12 +175,12 @@ export default function Dashboard() {
           </div>
           <span className="text-xs font-mono text-cyan-400 flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
-            {iotStatus.length} Active Sensors
+            {(Array.isArray(iotStatus) ? iotStatus : DEMO_IOT_DEVICES).length} Active Sensors
           </span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {iotStatus.map((sensor) => (
+          {(Array.isArray(iotStatus) ? iotStatus : DEMO_IOT_DEVICES).map((sensor) => (
             <div key={sensor.id} className="p-4 rounded-xl bg-[#090e11]/80 border border-emerald-500/20 hover:border-emerald-500/40 transition">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[10px] font-mono text-gray-400 uppercase">{sensor.id}</span>
